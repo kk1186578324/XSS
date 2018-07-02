@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="/javascripts/he.js" charset="utf-8"></script>
+      <script src="/javascripts/htmlparser.js" charset="utf-8">
+
+      </script>
+      <!-- <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.js"></script> -->
+  </head>
+  <body>
+    <h1 id="title"><%= title %></h1>
+    <p >Welcome to <%= title %></p>
+    <h1 style="color:red"><%-xss%></h1>
+
+
+    <p for="">应户名：<input type="text" name="user" id="userName"></p>
+
+    <p for="" style="margin-top:10px;">密&ensp;&ensp;码：<input type="password" id="passName" name="password"></p>
+
+    <input type="submit"  id="sub" value="登录">
+
+    <button id="getUser">获取登录信息</button>
+
+    <!-- <a href="">下载</a> -->
+
+
+    
+    <p style="margin-top:10px;"></p>
+    <textarea name="name" id="txt" cols="80" rows="10">
+    <img src="null" alt="" onerror="alert(1)">
+    </textarea>
+
+
+   <button type="button" name="button" id="btn">评论</button>
+     <button type="button" name="button" id="get">获取评论</button>
+  </body>
+
+  <script>
+    //前端过滤
+   var parseHtml = function(str){
+      var results = '';
+      try{
+         HTMLParser(he.unescape(str,{strict:true}),{
+         	start:function(tag,attrs,unary){
+         		console.log(tag,attrs,unary)
+
+         		if(tag=='script'||tag=='style'||tag=='link'||tag=='iframe'){
+         			return 
+         		}
+         
+         		results += '<'+tag;
+         		results +=(unary?"/":"")+">"
+         	},
+         	end:function(tag){
+         		results += "</"+tag+">";
+         	},
+         	chars:function(text){
+         		results +=text;
+         	},
+         	comment:function(text){
+         		results +="<!--"+text+"-->";
+         	}
+
+         });
+
+         return results;
+
+      }catch(e){
+      	console.log(e)
+      }finally{
+
+      }
+
+   }
+
+   //记录Cookie
+function SetCookie(name, value, days){
+    var finalDays = 7; //cookie存储时间默认7天
+    if (typeof (days) != "undefined" && !isNaN(days)){
+        finalDays = parseInt(days);
+    }
+    var exp = new Date();
+    exp.setTime(exp.getTime() + finalDays * 24 * 60 * 60 * 1000);
+    document.cookie = name + "=" + escape(value) + ";path=/ ;expires=" + exp.toGMTString();
+}
+  function delCookie(name){//为了删除指定名称的cookie，可以将其过期时间设定为一个过去的时间 
+      var date = new Date(); 
+      date.setTime(date.getTime() - 10000); 
+      document.cookie = name + "=a; expires=" + date.toGMTString(); 
+  } 
+
+  var btn = document.getElementById('btn');
+  var get = document.getElementById('get');
+  var txt = document.getElementById('txt');
+  var sub = document.getElementById('sub');
+  var getUser = document.getElementById('getUser');
+ var title = document.getElementById('title');
+
+
+  //////登录//////
+
+  sub.addEventListener('click',function(){
+
+    setCookieSubmit()//调用cookie登录
+   // setSubmitAjax()//调用session登录
+
+
+  })
+
+//cookie方式登录
+  function setCookieSubmit(){
+    var userName = document.getElementById('userName').value;
+    var passName = document.getElementById('passName').value;
+    delCookie("userkey");
+    SetCookie("userkey",userName,7);
+    SetCookie("paskey",passName,7);
+  }
+
+
+//session方式登录
+  function setSubmitAjax(){
+
+    var userName = document.getElementById('userName').value;
+    var passName = document.getElementById('passName').value;
+    var xhr = new XMLHttpRequest();
+    var url = '/login';
+    xhr.open('POST',url,true);
+    var data = 'user='+userName+'&'+'password='+passName
+    console.log(data);
+    xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState==4){
+        if(xhr.status==200){
+          console.log(xhr)
+        }else{
+          console.log('error')
+        }
+      }
+    }
+    xhr.send(data);
+
+
+
+  }
+
+
+
+  ////获取登录信息///////
+ getUser.addEventListener('click',function(){
+  
+     GetCookieVal();//调用cookie数据
+
+    // setSession();//调用session数据
+
+
+  })
+ function GetCookieVal(offset) {
+    var endstr = document.cookie.indexOf(";", offset);
+    if (endstr == -1)
+        endstr = document.cookie.length;
+     var data = unescape(document.cookie.substring(offset, endstr));
+        title.innerHTML ="Welcome"+ data.split('=')[1];
+        console.log(data)
+    
+     
+
+}
+//设置Session
+ function setSession(){
+
+      var xhr = new XMLHttpRequest();
+    var url = '/session';
+    xhr.open('GET',url,true);
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState==4){
+        if(xhr.status==200){
+          console.log(xhr)
+          var com = JSON.parse(xhr.response);
+
+          if(com.user){
+
+            title.innerHTML ="Welcome"+ com.user;
+          }else{
+             title.innerHTML ="请登录";
+          }
+        }else{
+          console.log('error')
+        }
+      }
+    }
+    xhr.send();
+
+ }
+
+
+
+
+  //////////////评论///////////////
+  btn.addEventListener('click',function(){
+  	var xhr = new XMLHttpRequest();
+  	var url = '/comment?comment='+ txt.value;
+  	xhr.open('GET',url,true);
+  	xhr.onreadystatechange = function(){
+  		if(xhr.readyState==4){
+  			if(xhr.status==200){
+  				console.log(xhr)
+  			}else{
+  				console.log('error')
+  			}
+  		}
+  	}
+  	xhr.send();
+
+
+
+
+
+  })
+///////////////获取评论//////////////////
+ get.addEventListener('click',function(){
+  	var xhr = new XMLHttpRequest();
+  	var url = '/getComment';
+  	xhr.open('GET',url,true);
+  	xhr.onreadystatechange = function(){
+  		if(xhr.readyState==4){
+  			if(xhr.status==200){
+  				console.log(xhr)
+  				// var com = JSON.parse(xhr.response).comment;
+  				var com = parseHtml(JSON.parse(xhr.response).comment);
+  				console.log(com)
+  				var txt = document.createElement('p');
+  				txt.innerHTML = com;
+  				document.body.appendChild(txt);
+  			}else{
+  				console.log('error')
+  			}
+  		}
+  	}
+  	xhr.send();
+  })
+
+
+
+
+  </script>
+</html>
+
